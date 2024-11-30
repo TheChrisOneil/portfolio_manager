@@ -5,7 +5,7 @@ metadata:
   namespace: kafka
 spec:
   kafka:
-    version: 3.7.1   # Supported version
+    version: 3.7.1   # Ensure this matches the Strimzi-supported version
     replicas: 3
     listeners:
       - name: plain
@@ -16,13 +16,19 @@ spec:
         port: 9093
         type: internal
         tls: true   # TLS listener uses TLS
+    config: # Recommended Kafka broker configuration
+      log.message.format.version: "3.7"
+      inter.broker.protocol.version: "3.7"
     resources:
       requests:
         memory: 2Gi
         cpu: 500m
+      limits:
+        memory: 4Gi
+        cpu: 1
     storage:
       type: persistent-claim
-      class: standard
+      class: gp2  # Updated to match the existing AWS EBS storage class
       size: 10Gi
   zookeeper:
     replicas: 3
@@ -30,9 +36,12 @@ spec:
       requests:
         memory: 1Gi
         cpu: 500m
+      limits:
+        memory: 2Gi
+        cpu: 1
     storage:
       type: persistent-claim
-      class: standard
+      class: gp2  # Updated to match the existing AWS EBS storage class
       size: 5Gi
   entityOperator:
     topicOperator: {}
