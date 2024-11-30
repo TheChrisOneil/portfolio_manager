@@ -53,9 +53,26 @@ jobs:
       run: |
         aws eks update-kubeconfig --region us-east-1 --name ${{ secrets.EKS_CLUSTER_NAME }}
 
-    # Step 7: Deploy to Kubernetes
+    # Step 7: Deploy Strimzi Operator (if not already deployed)
+    - name: Deploy Strimzi Operator
+      run: |
+        kubectl apply -f app/k8s/strimzi/strimzi-operator.yaml
+        kubectl wait --for=condition=Available --timeout=300s deployment/strimzi-cluster-operator -n kafka
+
+
+    # Step 8: Deploy Kafka Cluster
+    - name: Create Kafka Cluster
+      run: |
+        kubectl apply -f app/k8s/strimzi/kafka-cluster.yaml
+        kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
+        
+    # Step 9: Create Kafka Topics
+    - name: Create Kafka Topics
+      run: |
+        kubectl apply -f app/k8s/strimzi/kafka-topics.yaml
+
+    # Step 10: Deploy Application
     - name: Deploy to Kubernetes
       run: |
         kubectl apply -f app/k8s/deployment.yaml
         kubectl apply -f app/k8s/service.yaml
-
