@@ -22,11 +22,11 @@ CMD ["sh", "-c", "\
     case \"$APP_ROLE\" in \
       producer) \
         if [ -z \"$APP_SCRIPT\" ]; then echo 'Missing APP_SCRIPT for producer role' && exit 1; fi; \
-        python /app/src/producers/$APP_SCRIPT; \
+        python /app/src/kafka/producers/$APP_SCRIPT; \
         ;; \
       consumer) \
         if [ -z \"$APP_SCRIPT\" ]; then echo 'Missing APP_SCRIPT for consumer role' && exit 1; fi; \
-        python /app/src/consumers/$APP_SCRIPT; \
+        python /app/src/kafka/consumers/$APP_SCRIPT; \
         ;; \
       flink) \
         if [ -z \"$FLINK_JOB\" ]; then echo 'Missing FLINK_JOB for flink role' && exit 1; fi; \
