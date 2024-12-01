@@ -111,5 +111,5 @@ jobs:
         # Step 14: Deploy Flink Job
     - name: Deploy Flink Job
       run: |
-        kubectl apply -f app/k8s/flink/job-portfolio-recalculator.yaml
+        kubectl apply -f app/k8s/job-portfolio-recalculator.yaml
         kubectl wait --for=condition=Ready --timeout=300s flinkdeployment/portfolio-recalculator -n flink-operator
