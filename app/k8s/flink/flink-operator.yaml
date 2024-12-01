@@ -6,7 +6,7 @@ metadata:
 spec:
   flinkVersion: v1_16
   image: flink:1.16.0-scala_2.12
-  serviceAccount: flink-job  # Ensure this matches the service account name
+  serviceAccount: flink-job # Ensure this matches your service account
   jobManager:
     replicas: 1
     resource:
