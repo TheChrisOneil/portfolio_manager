@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: consumer-market-data
-        image: your-dockerhub-repo/kafka-app:latest
+        image: thechrisoneil/fintech-app-portfolio-mgr:latest
         env:
         - name: APP_ROLE
           value: "consumer"
