@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer-transaction-sim
+  namespace: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: producer-transaction-sim
+  template:
+    metadata:
+      labels:
+        app: producer-transaction-sim
+    spec:
+      containers:
+      - name: producer-transaction-sim
+        image: thechrisoneil/fintech-app-portfolio-mgr:latest
+        env:
+        - name: APP_ROLE
+          value: "producer"
+        - name: APP_SCRIPT
+          value: "producer-transaction-sim.py"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "my-cluster-kafka-bootstrap.kafka.svc:9092"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"

@@ -75,10 +75,12 @@ jobs:
     - name: Deploy Producer and Consumer
       run: |
         kubectl apply -f app/k8s/producer-market-data-sim.yaml
+        kubectl apply -f app/k8s/producer-transaction-sim.yaml
         kubectl apply -f app/k8s/consumer-market-data.yaml
 
     # Step 11: Deploy Services
     - name: Deploy Services
       run: |
         kubectl apply -f app/k8s/producer-market-data-sim-service.yaml
+        kubectl apply -f app/k8s/producer-transaction-sim-service.yaml
         kubectl apply -f app/k8s/consumer-market-data-service.yaml
