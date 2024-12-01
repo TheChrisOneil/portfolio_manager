@@ -1,46 +1,27 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
 metadata:
   name: portfolio-recalculator
-  namespace: kafka
+  namespace: flink-operator
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: portfolio-recalculator
-  template:
-    metadata:
-      labels:
-        app: portfolio-recalculator
-    spec:
-      containers:
-      - name: portfolio-recalculator
-        image: your-dockerhub-repo/fintech-app-portfolio-mgr:latest
-        env:
-        - name: APP_ROLE
-          value: "flink"  # Role for this deployment
-        - name: APP_SCRIPT
-          value: ""  # Not used for Flink jobs
-        - name: FLINK_JOB
-          value: "PortfolioRecalculator.jar"  # Flink job file
-        - name: KAFKA_BOOTSTRAP_SERVERS
-          value: "my-cluster-kafka-bootstrap:9092"  # Kafka server
-        - name: INPUT_TOPIC
-          value: "user-transactions"  # Input topic
-        - name: OUTPUT_TOPIC
-          value: "user-portfolio"  # Output topic
-        resources:
-          limits:
-            cpu: "1"
-            memory: "1Gi"
-          requests:
-            cpu: "500m"
-            memory: "512Mi"
-        command: ["flink"]
-        args: [
-          "run",
-          "/app/src/flink/$FLINK_JOB",  # Dynamically references FLINK_JOB
-          "--kafka.bootstrap.servers", "$(KAFKA_BOOTSTRAP_SERVERS)",
-          "--input.topic", "$(INPUT_TOPIC)",
-          "--output.topic", "$(OUTPUT_TOPIC)"
-        ]
+  flinkVersion: v1_16
+  image:
+    name: thechrisoneil/portfolio-mgr-flink:latest
+  jobManager:
+    replicas: 1
+    resource:
+      memory: "1024m"
+      cpu: "1"
+  taskManager:
+    replicas: 2
+    resource:
+      memory: "2048m"
+      cpu: "2"
+  job:
+    jarURI: "/app/PortfolioRecalculator.jar"
+    parallelism: 4
+    upgradeMode: stateless
+    args:
+      - --kafka.bootstrap.servers=my-cluster-kafka-bootstrap:9092
+      - --input.topic=user-transactions
+      - --output.topic=user-portfolio

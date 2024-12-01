@@ -26,11 +26,11 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    # Step 3: Build and push Docker image
+    # Step 3: Build and push Docker image for kafka applications
     - name: Build and Push Docker Image
       run: |
-        docker build -t ${{ secrets.DOCKER_USERNAME }}/fintech-app-portfolio-mgr:latest ./app
-        docker push ${{ secrets.DOCKER_USERNAME }}/fintech-app-portfolio-mgr:latest
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/portfolio-mgr-kafka:latest -f app/src/kafka/Dockerfile ./app
+        docker push ${{ secrets.DOCKER_USERNAME }}/portfolio-mgr-kafka:latest
 
     # Step 4: Configure AWS CLI
     - name: Configure AWS CLI
@@ -101,3 +101,15 @@ jobs:
 
         # Wait for the Flink Operator to become ready
         kubectl wait --for=condition=Available --timeout=300s deployment/flink-kubernetes-operator -n flink-operator
+
+    # Step 13: Build and Push Flink Job Docker Image
+    - name: Build and Push Flink Job Docker Image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/portfolio-mgr-flink:latest -f app/src/kafka/Dockerfile ./app
+        docker push ${{ secrets.DOCKER_USERNAME }}/portfolio-mgr-flink:latest
+    
+        # Step 14: Deploy Flink Job
+    - name: Deploy Flink Job
+      run: |
+        kubectl apply -f app/k8s/flink/job-portfolio-recalculator.yaml
+        kubectl wait --for=condition=Ready --timeout=300s flinkdeployment/portfolio-recalculator -n flink-operator

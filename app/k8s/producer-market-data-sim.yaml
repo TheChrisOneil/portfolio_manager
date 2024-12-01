@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: producer-market-data-sim
-        image: thechrisoneil/fintech-app-portfolio-mgr:latest
+        image: thechrisoneil/portfolio-mgr-kafka:latest
         env:
         - name: APP_ROLE
           value: "producer"
