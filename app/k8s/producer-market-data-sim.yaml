@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: producer-market-data
+  name: producer-market-data-sim
   namespace: kafka
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: producer-market-data
+      app: producer-market-data-sim
   template:
     metadata:
       labels:
-        app: producer-market-data
+        app: producer-market-data-sim
     spec:
       containers:
-      - name: producer-market-data
+      - name: producer-market-data-sim
         image: thechrisoneil/fintech-app-portfolio-mgr:latest
         env:
         - name: APP_ROLE
           value: "producer"
         - name: APP_SCRIPT
-          value: "producer-market-data.py"
+          value: "producer-market-data-sim.py"
         - name: KAFKA_BOOTSTRAP_SERVERS
           value: "my-cluster-kafka-bootstrap.kafka.svc:9092"
         resources:
