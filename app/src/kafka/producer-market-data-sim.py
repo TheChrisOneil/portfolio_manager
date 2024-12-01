@@ -1,49 +1,41 @@
 import os
-import json
 import random
 import time
-from datetime import datetime
 from confluent_kafka import Producer
 
-# List of NASDAQ companies (shortened for brevity)
-nasdaq_companies = ["AAPL", "MSFT", "AMZN", "GOOG", "TSLA"]
+# Fetch Kafka bootstrap server from environment variable
+KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
 
-# Kafka producer configuration
+# Kafka Producer configuration
 conf = {
-    'bootstrap.servers': os.getenv('KAFKA_BOOTSTRAP_SERVERS'),
-    'security.protocol': 'SASL_SSL',
-    'sasl.mechanism': 'PLAIN',
-    'sasl.username': os.getenv('KAFKA_SASL_USERNAME'),
-    'sasl.password': os.getenv('KAFKA_SASL_PASSWORD'),
-    'client.id': 'nasdaq-simulator-producer'
+    'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS
 }
 
+# Create Kafka Producer instance
 producer = Producer(conf)
 
+# Callback for delivery report
 def delivery_report(err, msg):
-    if err:
-        print(f"Delivery failed: {err}")
+    """Callback for Kafka delivery reports."""
+    if err is not None:
+        print(f"Message delivery failed: {err}")
     else:
-        print(f"Delivered to {msg.topic()} [{msg.partition()}]")
+        print(f"Message delivered to {msg.topic()} [partition {msg.partition()}]")
 
-def generate_market_data():
+# Generate and send messages
+print("Starting producer...")
+
+companies = ["AAPL", "GOOG", "MSFT", "AMZN", "FB"]
+try:
     while True:
-        company = random.choice(nasdaq_companies)
-        data = {
-            "symbol": company,
-            "price": round(random.uniform(100, 1000), 2),
-            "volume": random.randint(1000, 100000),
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        producer.produce('market_data', value=json.dumps(data), callback=delivery_report)
-        producer.poll(0)
-        time.sleep(random.uniform(0.1, 1))
-
-if __name__ == "__main__":
-    try:
-        print("Starting NASDAQ Market Data Producer...")
-        generate_market_data()
-    except KeyboardInterrupt:
-        print("Shutting down producer.")
-    finally:
+        for company in companies:
+            price = round(random.uniform(100, 500), 2)
+            message = f"{company}: {price}"
+            producer.produce("market_data", key=company, value=message, callback=delivery_report)
+            time.sleep(1)  # Pause between messages for demonstration purposes
+        
         producer.flush()
+except KeyboardInterrupt:
+    print("Producer stopped.")
+finally:
+    producer.flush()

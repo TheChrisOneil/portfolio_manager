@@ -71,8 +71,14 @@ jobs:
       run: |
         kubectl apply -f app/k8s/strimzi/kafka-topics.yaml
 
-    # Step 10: Deploy Application
-    - name: Deploy to Kubernetes
+    # Step 10: Deploy Applications (Producer and Consumer)
+    - name: Deploy Producer and Consumer
       run: |
-        kubectl apply -f app/k8s/deployment.yaml
-        kubectl apply -f app/k8s/service.yaml
+        kubectl apply -f app/k8s/producer-market-data.yaml
+        kubectl apply -f app/k8s/consumer-market-data.yaml
+
+    # Step 11: Deploy Services
+    - name: Deploy Services
+      run: |
+        kubectl apply -f app/k8s/producer-market-data-service.yaml
+        kubectl apply -f app/k8s/consumer-market-data-service.yaml
