@@ -71,16 +71,33 @@ jobs:
       run: |
         kubectl apply -f app/k8s/strimzi/kafka-topics.yaml
 
-    # Step 10: Deploy Applications (Producer and Consumer)
+    # Step 10: Deploy kafka Applications (Producer and Consumer)
     - name: Deploy Producer and Consumer
       run: |
         kubectl apply -f app/k8s/producer-market-data-sim.yaml
         kubectl apply -f app/k8s/producer-transaction-sim.yaml
         kubectl apply -f app/k8s/consumer-market-data.yaml
 
-    # Step 11: Deploy Services
+    # Step 11: Deploy kafka Services
     - name: Deploy Services
       run: |
         kubectl apply -f app/k8s/producer-market-data-sim-service.yaml
         kubectl apply -f app/k8s/producer-transaction-sim-service.yaml
         kubectl apply -f app/k8s/consumer-market-data-service.yaml
+
+    # Step 12: Deploy Flink Operator using Helm
+    - name: Deploy Flink Operator
+      run: |
+        # Ensure the Helm repo is added and updated
+        helm repo add flink-operator-repo https://downloads.apache.org/flink/flink-kubernetes-operator-1.10.0/
+        helm repo update
+
+        # Create the Flink namespace if it doesn't already exist
+        kubectl create namespace flink-operator || true
+
+        # Install or upgrade the Flink Kubernetes Operator using Helm
+        helm upgrade --install flink-kubernetes-operator flink-operator-repo/flink-kubernetes-operator \
+          --namespace flink-operator
+
+        # Wait for the Flink Operator to become ready
+        kubectl wait --for=condition=Available --timeout=300s deployment/flink-kubernetes-operator -n flink-operator

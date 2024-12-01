@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio-recalculator
+  namespace: kafka
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portfolio-recalculator
+  template:
+    metadata:
+      labels:
+        app: portfolio-recalculator
+    spec:
+      containers:
+      - name: portfolio-recalculator
+        image: your-dockerhub-repo/fintech-app-portfolio-mgr:latest
+        env:
+        - name: APP_ROLE
+          value: "flink"  # Role for this deployment
+        - name: APP_SCRIPT
+          value: ""  # Not used for Flink jobs
+        - name: FLINK_JOB
+          value: "PortfolioRecalculator.jar"  # Flink job file
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "my-cluster-kafka-bootstrap:9092"  # Kafka server
+        - name: INPUT_TOPIC
+          value: "user-transactions"  # Input topic
+        - name: OUTPUT_TOPIC
+          value: "user-portfolio"  # Output topic
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+        command: ["flink"]
+        args: [
+          "run",
+          "/app/src/flink/$FLINK_JOB",  # Dynamically references FLINK_JOB
+          "--kafka.bootstrap.servers", "$(KAFKA_BOOTSTRAP_SERVERS)",
+          "--input.topic", "$(INPUT_TOPIC)",
+          "--output.topic", "$(OUTPUT_TOPIC)"
+        ]
