@@ -1,16 +1,17 @@
 {
     "Version": "2012-10-17",
     "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ec2:Describe*",
-                "elasticloadbalancing:*",
-                "s3:*",
-                "logs:*",
-                "cloudwatch:*"
-            ],
-            "Resource": "*"
-        }
+      {
+        "Effect": "Allow",
+        "Action": [
+          "s3:*",
+          "ec2:*",
+          "logs:*",
+          "cloudwatch:*",
+          "elasticloadbalancing:*"
+        ],
+        "Resource": "*"
+      }
     ]
-}
+  }
+  

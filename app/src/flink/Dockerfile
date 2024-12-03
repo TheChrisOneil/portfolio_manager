@@ -1,11 +1,21 @@
-# Use the Flink image
-FROM flink:1.16.0-scala_2.12
+# Use an official Flink image as the base
+FROM apache/flink:1.16.0-scala_2.12
+
+# Install PyFlink and any additional dependencies
+RUN pip install apache-flink \
+    && pip install confluent-kafka \
+    && pip install jsonschema  # Add any additional libraries as required
 
 # Set working directory
 WORKDIR /app
 
-# Copy the compiled JAR file
-COPY PortfolioRecalculator.jar /app/PortfolioRecalculator.jar
+# Copy Python script and dependencies
+COPY ./src/flink/portfolio_recalculator.py /app/src/flink/
 
-# Entry point for Flink
-ENTRYPOINT ["flink", "run", "-c", "PortfolioRecalculator", "/app/PortfolioRecalculator.jar"]
+# Set environment variables
+ENV APP_ROLE="" \
+    APP_SCRIPT="" \
+    KAFKA_BOOTSTRAP_SERVERS=""
+
+# Default entry point for PyFlink
+CMD ["python", "/app/src/flink/portfolio_recalculator.py"]

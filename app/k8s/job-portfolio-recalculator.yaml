@@ -3,25 +3,40 @@ kind: FlinkDeployment
 metadata:
   name: portfolio-recalculator
   namespace: flink-operator
+  labels:
+    app: flink
+    component: portfolio-recalculator
 spec:
+  image: thechrisoneil/portfolio-mgr-flink:latest
   flinkVersion: v1_16
-  image: flink:1.16.0-scala_2.12
-  serviceAccount: flink-job  # Ensure this matches the service account name
   jobManager:
     replicas: 1
     resource:
-      cpu: 1
-      memory: "1024m"
+      cpu: "1"
+      memory: "2048m"
   taskManager:
     replicas: 2
     resource:
-      cpu: 2
-      memory: "2048m"
+      cpu: "2"
+      memory: "4096m"
+    numberOfTaskSlots: 4
+  podTemplate:
+    spec:
+      serviceAccountName: flink-operator-sa  # Updated service account
+      containers:
+      - name: portfolio-recalculator
+        image: thechrisoneil/portfolio-mgr-flink:latest
+        env:
+        - name: APP_ROLE
+          value: "producer"
+        - name: APP_SCRIPT
+          value: "/app/src/flink/portfolio_recalculator.py"
+        - name: KAFKA_BOOTSTRAP_SERVERS
+          value: "my-cluster-kafka-bootstrap.kafka.svc:9092"
+        ports:
+        - containerPort: 8081
   job:
-    jarURI: "s3://your-bucket/PortfolioRecalculator.jar" # Update to the actual JAR URI
-    parallelism: 4
-    upgradeMode: stateless
-    args:
-      - "--kafka.bootstrap.servers=my-cluster-kafka-bootstrap:9092"
-      - "--input.topic=user-transactions"
-      - "--output.topic=user-portfolio"
+    parallelism: 2
+    state: "running"
+    upgradeMode: "stateless"
+    pyFile: "local:///app/src/flink/portfolio_recalculator.py"
