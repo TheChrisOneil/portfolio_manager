@@ -1,10 +1,13 @@
 # Use an official Flink image as the base
 FROM apache/flink:1.16.0-scala_2.12
 
-# Install PyFlink and any additional dependencies
-RUN pip install apache-flink \
-    && pip install confluent-kafka \
-    && pip install jsonschema  # Add any additional libraries as required
+# Install Python, pip, and additional dependencies
+RUN apt-get update && apt-get install -y python3 python3-pip \
+    && pip3 install apache-flink \
+    && pip3 install confluent-kafka \
+    && pip3 install jsonschema \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -18,4 +21,4 @@ ENV APP_ROLE="" \
     KAFKA_BOOTSTRAP_SERVERS=""
 
 # Default entry point for PyFlink
-CMD ["python", "/app/src/flink/portfolio_recalculator.py"]
+CMD ["python3", "/app/src/flink/portfolio_recalculator.py"]
