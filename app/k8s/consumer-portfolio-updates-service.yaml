@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: consumer-portfolio-updates-service
+  namespace: flink-operator
+  labels:
+    app: consumer-portfolio-updates
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: consumer-portfolio-updates

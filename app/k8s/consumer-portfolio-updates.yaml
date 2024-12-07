@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer-portfolio-updates
+  namespace: flink-operator
+  labels:
+    app: consumer-portfolio-updates
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: consumer-portfolio-updates
+  template:
+    metadata:
+      labels:
+        app: consumer-portfolio-updates
+    spec:
+      containers:
+        - name: consumer-portfolio-updates
+          image: thechrisoneil/portfolio-updates-consumer:latest
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "my-cluster-kafka-bootstrap.kafka.svc:9092"
+            - name: OUTPUT_TOPIC
+              value: "portfolio-updates"
+            - name: GROUP_ID
+              value: "portfolio-consumer"
+          ports:
+            - containerPort: 8080
+          livenessProbe:
+            exec:
+              command:
+                - cat
+                - /tmp/healthy
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command:
+                - cat
+                - /tmp/ready
+            initialDelaySeconds: 10
+            periodSeconds: 10

@@ -3,40 +3,78 @@ kind: FlinkDeployment
 metadata:
   name: portfolio-recalculator
   namespace: flink-operator
-  labels:
-    app: flink
-    component: portfolio-recalculator
 spec:
-  image: thechrisoneil/portfolio-mgr-flink:latest
   flinkVersion: v1_16
+  image: thechrisoneil/portfolio-mgr-flink:latest
+  serviceAccount: flink-operator-sa
+  flinkConfiguration:
+    jobmanager.rpc.port: "6123"  # Fixed single port
+    rest.port: "8081"  # REST API port
   jobManager:
     replicas: 1
     resource:
-      cpu: "1"
-      memory: "2048m"
+      cpu: 1
+      memory: 2048Mi
   taskManager:
     replicas: 2
     resource:
-      cpu: "2"
-      memory: "4096m"
-    numberOfTaskSlots: 4
+      cpu: 1
+      memory: 2048Mi
+  job:
+    jarURI: local:///opt/flink/lib/flink-python.jar
+    entryClass: org.apache.flink.client.python.PythonDriver
+    args:
+      - "-pyclientexec"
+      - "/usr/local/bin/python3"
+      - "-py"
+      - "/app/src/flink/portfolio_recalculator.py"
+    parallelism: 2
+    state: running
+    upgradeMode: stateless
   podTemplate:
     spec:
-      serviceAccountName: flink-operator-sa  # Updated service account
       containers:
-      - name: portfolio-recalculator
-        image: thechrisoneil/portfolio-mgr-flink:latest
-        env:
-        - name: APP_ROLE
-          value: "producer"
-        - name: APP_SCRIPT
-          value: "/app/src/flink/portfolio_recalculator.py"
-        - name: KAFKA_BOOTSTRAP_SERVERS
-          value: "my-cluster-kafka-bootstrap.kafka.svc:9092"
-        ports:
-        - containerPort: 8081
-  job:
-    parallelism: 2
-    state: "running"
-    upgradeMode: "stateless"
-    pyFile: "local:///app/src/flink/portfolio_recalculator.py"
+        - name: portfolio-recalculator
+          image: thechrisoneil/portfolio-mgr-flink:latest
+          args:
+            - jobmanager
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "my-cluster-kafka-bootstrap.kafka.svc:9092"
+            - name: TRANSACTIONS_TOPIC
+              value: "user-transactions"
+            - name: MARKET_DATA_TOPIC
+              value: "market-data"
+            - name: OUTPUT_TOPIC
+              value: "portfolio-updates"
+            - name: GROUP_ID
+              value: "portfolio-recalculator"
+          ports:
+            - containerPort: 6123  # RPC port
+            - containerPort: 6124  # Blob port
+            - containerPort: 8081  # REST API port
+          livenessProbe:
+            httpGet:
+              path: /overview  # REST API endpoint
+              port: 8081
+            initialDelaySeconds: 30  # Delay before checking
+            periodSeconds: 10        # Frequency of checks
+          readinessProbe:
+            httpGet:
+              path: /overview
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          volumeMounts:
+            - mountPath: /opt/flink/conf
+              name: flink-config-volume
+              readOnly: false
+      volumes:
+        - name: flink-config-volume
+          configMap:
+            name: flink-config-portfolio-recalculator
+        - name: user-artifacts-volume
+          emptyDir: {}  # Temporary directory for artifacts
+        - name: pod-template-volume
+          configMap:
+            name: pod-template-portfolio-recalculator

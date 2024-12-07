@@ -12,13 +12,16 @@ RUN apt-get update && apt-get install -y python3 python3-pip \
 # Set working directory
 WORKDIR /app
 
-# Copy Python script and dependencies
+# Copy Python script and requirements
 COPY ./src/flink/portfolio_recalculator.py /app/src/flink/
+COPY ./src/flink/requirements.txt /app/
+
+# Install Python dependencies from requirements.txt
+RUN pip3 install -r /app/requirements.txt
 
 # Set environment variables
-ENV APP_ROLE="" \
-    APP_SCRIPT="" \
-    KAFKA_BOOTSTRAP_SERVERS=""
-
-# Default entry point for PyFlink
-CMD ["python3", "/app/src/flink/portfolio_recalculator.py"]
+ENV KAFKA_BOOTSTRAP_SERVERS="localhost:9092" \
+    TRANSACTIONS_TOPIC="user-transactions" \
+    MARKET_DATA_TOPIC="market-data" \
+    OUTPUT_TOPIC="portfolio-updates" \
+    GROUP_ID="portfolio-recalculator"

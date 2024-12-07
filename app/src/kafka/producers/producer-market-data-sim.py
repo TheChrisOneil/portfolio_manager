@@ -24,8 +24,7 @@ def delivery_report(err, msg):
 
 # Generate and send messages
 print("Starting producer...")
-
-companies = ["AAPL", "GOOG", "MSFT", "AMZN", "FB"]
+nasdaq_companies = ["AAPL", "MSFT", "AMZN", "GOOG", "TSLA"]
 try:
     while True:
         for company in companies:

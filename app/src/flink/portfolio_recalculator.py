@@ -5,45 +5,73 @@ from pyflink.datastream.connectors import FlinkKafkaConsumer, FlinkKafkaProducer
 from pyflink.common.serialization import SimpleStringSchema
 
 
-def recalculate_portfolio(transaction, current_portfolios):
-    """Update portfolio based on a new transaction."""
-    user_id = transaction['user_id']
+def recalculate_portfolio(transaction, current_prices, current_portfolios):
+    """Update portfolio based on a transaction and market prices."""
+    user = transaction['user']
     stock = transaction['stock']
-    quantity = transaction['quantity']
+    quantity = transaction['quantity'] if transaction['transaction_type'] == "buy" else -transaction['quantity']
 
-    # Initialize the portfolio if it doesn't exist
-    if user_id not in current_portfolios:
-        current_portfolios[user_id] = {}
+    # Update portfolio quantities
+    if user not in current_portfolios:
+        current_portfolios[user] = {}
+    current_portfolios[user][stock] = current_portfolios[user].get(stock, 0) + quantity
 
-    # Update stock quantity
-    current_portfolios[user_id][stock] = (
-        current_portfolios[user_id].get(stock, 0) + quantity
+    # Calculate portfolio value using market prices
+    portfolio_value = sum(
+        quantity * current_prices.get(stock, 0)
+        for stock, quantity in current_portfolios[user].items()
     )
 
-    return {user_id: current_portfolios[user_id]}
+    return {
+        "user": user,
+        "portfolio": current_portfolios[user],
+        "total_value": portfolio_value
+    }
 
 
-def process_transactions(transaction_json, portfolios_state):
-    """Main processing logic for incoming transactions."""
-    transaction = json.loads(transaction_json)
-    updated_portfolio = recalculate_portfolio(transaction, portfolios_state)
-    return json.dumps(updated_portfolio)
+def process_streams(transaction_json, market_json, portfolios_state, market_prices):
+    """Main processing logic for transactions and market data."""
+    try:
+        # Update market prices
+        if market_json:
+            stock, price = market_json.split(":")
+            market_prices[stock] = float(price)
+            return None  # Market data doesn't produce an output directly
+
+        # Process transactions
+        if transaction_json:
+            transaction = json.loads(transaction_json)
+            updated_portfolio = recalculate_portfolio(transaction, market_prices, portfolios_state)
+            return json.dumps(updated_portfolio)
+
+    except Exception as e:
+        print(f"Error processing stream: {e}")
+        return None
 
 
 def main():
-    # Load environment variables
+    # Environment variables
     kafka_bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    input_topic = os.getenv("INPUT_TOPIC", "user-transactions")
-    output_topic = os.getenv("OUTPUT_TOPIC", "user-portfolio")
+    transactions_topic = os.getenv("TRANSACTIONS_TOPIC", "user-transactions")
+    market_data_topic = os.getenv("MARKET_DATA_TOPIC", "market-data")
+    output_topic = os.getenv("OUTPUT_TOPIC", "portfolio-updates")
     group_id = os.getenv("GROUP_ID", "portfolio-recalculator")
 
     # Set up the Flink execution environment
     env = StreamExecutionEnvironment.get_execution_environment()
     env.set_parallelism(4)
 
-    # Define Kafka source
-    kafka_source = FlinkKafkaConsumer(
-        topics=input_topic,
+    # Kafka consumers
+    transaction_source = FlinkKafkaConsumer(
+        topics=transactions_topic,
+        deserialization_schema=SimpleStringSchema(),
+        properties={
+            'bootstrap.servers': kafka_bootstrap_servers,
+            'group.id': group_id
+        }
+    )
+    market_source = FlinkKafkaConsumer(
+        topics=market_data_topic,
         deserialization_schema=SimpleStringSchema(),
         properties={
             'bootstrap.servers': kafka_bootstrap_servers,
@@ -51,7 +79,7 @@ def main():
         }
     )
 
-    # Define Kafka sink
+    # Kafka producer
     kafka_sink = FlinkKafkaProducer(
         topic=output_topic,
         serialization_schema=SimpleStringSchema(),
@@ -60,16 +88,23 @@ def main():
         }
     )
 
-    # Current portfolios state (in-memory for simplicity)
+    # In-memory state
     current_portfolios = {}
+    market_prices = {}
 
-    # Stream processing
-    env.from_source(kafka_source, "kafka-source", None) \
-        .map(lambda x: process_transactions(x, current_portfolios)) \
+    # Stream processing pipeline
+    transaction_stream = env.from_source(transaction_source, "transaction-source", None)
+    market_stream = env.from_source(market_source, "market-source", None)
+
+    transaction_stream.union(market_stream) \
+        .map(lambda data: process_streams(data if "transaction_type" in data else None,
+                                          data if ":" in data else None,
+                                          current_portfolios, market_prices)) \
+        .filter(lambda x: x is not None) \
         .add_sink(kafka_sink)
 
     # Execute the Flink job
-    env.execute("Portfolio Recalculator")
+    env.execute("Portfolio Recalculator with Market Data")
 
 
 if __name__ == "__main__":
